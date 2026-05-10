@@ -13,6 +13,34 @@
   #help b{color:#fff;}
   #mute{position:absolute;right:10px;top:10px;color:#ff66cc;font-size:11px;letter-spacing:1px;background:rgba(0,0,0,.5);border:1px solid #ff66cc;padding:3px 8px;cursor:pointer;font-family:inherit;}
   #mute:hover{background:#ff66cc;color:#000;}
+  /* On-screen touch controls (mobile / tablet) */
+  .tc{position:absolute;display:none;gap:10px;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;z-index:5;}
+  .tc-btn{
+    background:rgba(255,0,170,.22);border:2px solid #ff66cc;color:#fff;
+    font-family:inherit;font-size:24px;font-weight:bold;line-height:1;
+    text-shadow:1px 1px 0 #000,0 0 6px #ff00aa;
+    border-radius:50%;width:68px;height:68px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 10px #ff00aa66,inset 0 0 10px #ff00aa44;
+    padding:0;cursor:pointer;
+  }
+  .tc-btn.on,.tc-btn:active{background:rgba(255,0,170,.6);box-shadow:0 0 20px #ff00aa,inset 0 0 14px #ff00aacc;}
+  .tc-btn.gas{width:84px;height:84px;font-size:30px;border-color:#ffcc66;color:#ffeebb;box-shadow:0 0 12px #ffaa3399,inset 0 0 12px #ffaa3366;}
+  .tc-btn.gas.on,.tc-btn.gas:active{background:rgba(255,170,60,.55);box-shadow:0 0 22px #ffaa33,inset 0 0 14px #ffaa33cc;}
+  #tc-left{left:14px;bottom:14px;flex-direction:row;}
+  #tc-right{right:14px;bottom:14px;flex-direction:row;align-items:flex-end;}
+  .tc-pill{
+    background:rgba(0,0,0,.55);border:2px solid #ff66cc;color:#fff;
+    font-family:inherit;font-size:12px;font-weight:bold;letter-spacing:2px;
+    text-shadow:1px 1px 0 #000;border-radius:18px;padding:8px 14px;
+    box-shadow:0 0 10px #ff00aa66;cursor:pointer;
+  }
+  .tc-pill.on,.tc-pill:active{background:rgba(255,0,170,.55);}
+  #tc-horn{left:50%;bottom:18px;transform:translateX(-50%);}
+  @media (pointer:coarse),(hover:none){
+    .tc{display:flex;}
+    #help{display:none;}
+  }
 </style>
 </head>
 <body>
@@ -21,6 +49,15 @@
     <canvas id="c" width="640" height="400"></canvas>
     <div id="help"><b>&larr; &rarr;</b> steer &nbsp; <b>&uarr;</b> accel &nbsp; <b>&darr;</b> brake &nbsp; <b>SPACE</b> horn &nbsp; <b>ENTER</b> start</div>
     <button id="mute">SOUND: ON</button>
+    <div id="tc-left" class="tc">
+      <button class="tc-btn" data-key="arrowleft" aria-label="Steer left">&#9664;</button>
+      <button class="tc-btn" data-key="arrowright" aria-label="Steer right">&#9654;</button>
+    </div>
+    <div id="tc-right" class="tc">
+      <button class="tc-btn" data-key="arrowdown" aria-label="Brake">BRK</button>
+      <button class="tc-btn gas" data-key="arrowup" aria-label="Accelerate">GAS</button>
+    </div>
+    <button id="tc-horn" class="tc-pill tc" data-key=" " aria-label="Horn">HORN</button>
   </div>
 </div>
 <script>
@@ -1106,6 +1143,49 @@ document.getElementById('mute').addEventListener('click', ()=>{
   document.getElementById('mute').textContent = 'SOUND: '+(AU.on?'ON':'OFF');
   if(AU.master) AU.master.gain.setTargetAtTime(AU.on?0.7:0, AU.ctx.currentTime, 0.05);
 });
+
+/* ---------- on-screen touch controls ---------- */
+function tcEnter(){
+  if(GAME.state==='title'){ startGame(); }
+  else if(GAME.state==='gameover'||GAME.state==='win'){ GAME.state='title'; }
+  else if(GAME.state==='branch'){ confirmBranch(); }
+}
+document.querySelectorAll('.tc-btn, .tc-pill').forEach(el=>{
+  const key = el.dataset.key;
+  const press = (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    audioInit();
+    el.classList.add('on');
+    if(key){
+      KEYS[key.toLowerCase()] = true;
+      if(key===' '){ blip(440,0.18,'square',0.25); blip(330,0.22,'square',0.18); }
+    }
+  };
+  const release = (e)=>{
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    el.classList.remove('on');
+    if(key) KEYS[key.toLowerCase()] = false;
+  };
+  el.addEventListener('touchstart', press, {passive:false});
+  el.addEventListener('touchend', release, {passive:false});
+  el.addEventListener('touchcancel', release, {passive:false});
+  el.addEventListener('mousedown', press);
+  el.addEventListener('mouseup', release);
+  el.addEventListener('mouseleave', ()=>release());
+  // prevent the synthetic click from also firing canvas tap-to-start
+  el.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); });
+});
+
+// Tap on the canvas (or empty stage area) acts as ENTER on non-racing screens.
+function canvasTap(e){
+  e.preventDefault();
+  audioInit();
+  if(GAME.state==='title'||GAME.state==='gameover'||GAME.state==='win'||GAME.state==='branch'){
+    tcEnter();
+  }
+}
+C.addEventListener('touchstart', canvasTap, {passive:false});
+C.addEventListener('mousedown', canvasTap);
 
 /* ============================================================
    UPDATE
