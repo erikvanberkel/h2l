@@ -252,56 +252,87 @@ function buildTruck(){
   return {img:pixels(rows,P,1), w:48, h:32};
 }
 
-/* palm tree silhouette (~36x80) */
+/* palm tree — canvas drawn for natural curves */
 function buildPalmTree(){
-  const P={t:'#5a3318',u:'#3d1e0a',g:'#1f8a3a',G:'#0f5d24',d:'#0a3a16',k:'#000',n:'#76421f'};
-  const rows=[
-    ".................gGGg...............",
-    "................gGdGGg..............",
-    ".............gGGGddGGGg.............",
-    "...........gGGGGdkkdGGGGg...........",
-    ".........gGGGGGGdkkdGGGGGGg.........",
-    "........gGdddGGGdkkdGGGdddGg........",
-    ".......gGddkkddGGdkdGGddkkddGg......",
-    "......gGdkkkkkddGddGddkkkkkdGg......",
-    ".....gGdkkddkkkddddddkkddkkkdGg.....",
-    "....gGdkddggggddkkkkddggggddkdGg....",
-    "....GdkddggGGGGGGddGGGGGGggddkdG....",
-    "....Gddggggdddddggggddddggggddgg....",
-    ".....gGdgggggggggggggggggggggGg.....",
-    "......gGGGdddddddddddddddddGGg......",
-    "........gGGGGGGGddddGGGGGGGg........",
-    "...........GGGGdkkkkdGGGG...........",
-    ".............GdtttttdG..............",
-    "..............ttuuutt...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............tuktkku...............",
-    "..............ttkkktt...............",
-    ".............ttuukkuutt.............",
-    "............tnuukkkkuunt............",
-    "...........nnuuuukkuuuunn...........",
-    "..........knnnnnnnnnnnnnnk.........."
-  ];
-  return {img:pixels(rows,P,2), w:72, h:88};
+  const w=80, h=190;
+  const cv=makeCanvas(w,h);
+  const cx=ctxOf(cv);
+  const cxX = w/2;
+  const trunkBaseY = h - 2;
+  const trunkTopY = h * 0.28;
+  let crownX = cxX;
+  for(let y = trunkBaseY; y >= trunkTopY; y--){
+    const t = (trunkBaseY - y) / (trunkBaseY - trunkTopY);
+    const tw = 10 + (7 - 10) * t;
+    const sway = Math.sin(t * 2.4) * 5;
+    const tx = cxX + sway;
+    cx.fillStyle = '#2c1808';
+    cx.fillRect(Math.round(tx - tw/2), y, Math.round(tw/2)+1, 1);
+    cx.fillStyle = '#7a4424';
+    cx.fillRect(Math.round(tx), y, Math.round(tw/2), 1);
+    if(y%4===0){
+      cx.fillStyle = '#3a2110';
+      cx.fillRect(Math.round(tx - tw/2), y, Math.round(tw), 1);
+    }
+    crownX = tx;
+  }
+  const crownY = trunkTopY;
+  const numFronds = 10;
+  for(let f=0; f<numFronds; f++){
+    const angle = -Math.PI/2 + (f - (numFronds-1)/2) * 0.42;
+    const len = 34 + (4 - Math.abs(f - 4.5)) * 3;
+    const droop = 22;
+    const tipX = crownX + Math.cos(angle) * len;
+    const tipY = crownY + Math.sin(angle) * len + droop;
+    const ctrlX = crownX + Math.cos(angle) * len * 0.5;
+    const ctrlY = crownY + Math.sin(angle) * len * 0.5 + droop * 0.3;
+    cx.strokeStyle = '#0a3a16';
+    cx.lineWidth = 4;
+    cx.beginPath();
+    cx.moveTo(crownX, crownY);
+    cx.quadraticCurveTo(ctrlX, ctrlY, tipX, tipY);
+    cx.stroke();
+    cx.strokeStyle = f%2 ? '#1f8a3a' : '#178030';
+    cx.lineWidth = 2;
+    cx.beginPath();
+    cx.moveTo(crownX, crownY);
+    cx.quadraticCurveTo(ctrlX, ctrlY, tipX, tipY);
+    cx.stroke();
+    const numLeaflets = 16;
+    for(let l=1; l<numLeaflets; l++){
+      const lt = l / numLeaflets;
+      const px = (1-lt)*(1-lt)*crownX + 2*(1-lt)*lt*ctrlX + lt*lt*tipX;
+      const py = (1-lt)*(1-lt)*crownY + 2*(1-lt)*lt*ctrlY + lt*lt*tipY;
+      const tx = 2*(1-lt)*(ctrlX-crownX) + 2*lt*(tipX-ctrlX);
+      const ty = 2*(1-lt)*(ctrlY-crownY) + 2*lt*(tipY-ctrlY);
+      const tlen = Math.sqrt(tx*tx + ty*ty) || 1;
+      const nx = -ty/tlen, ny = tx/tlen;
+      const leafLen = 6 + (1-lt)*6;
+      cx.strokeStyle = '#1a7a33';
+      cx.lineWidth = 1.5;
+      cx.beginPath();
+      cx.moveTo(px, py);
+      cx.lineTo(px + nx*leafLen, py + ny*leafLen + 1);
+      cx.moveTo(px, py);
+      cx.lineTo(px - nx*leafLen, py - ny*leafLen + 1);
+      cx.stroke();
+    }
+  }
+  cx.fillStyle = '#2a1408';
+  for(let c=0;c<5;c++){
+    const a = -Math.PI/2 + (c-2)*0.3;
+    cx.beginPath();
+    cx.arc(crownX + Math.cos(a)*3, crownY + Math.sin(a)*3 + 6, 3, 0, TAU);
+    cx.fill();
+  }
+  cx.fillStyle = '#7a4424';
+  for(let c=0;c<5;c++){
+    const a = -Math.PI/2 + (c-2)*0.3;
+    cx.beginPath();
+    cx.arc(crownX + Math.cos(a)*3 - 0.7, crownY + Math.sin(a)*3 + 5.5, 1, 0, TAU);
+    cx.fill();
+  }
+  return {img:cv, w, h};
 }
 
 /* highway billboard: post + sign */
@@ -340,86 +371,183 @@ function buildSign(letterColor='#fff'){
   return {img:pixels(rows,P,2), w:74, h:56};
 }
 
-/* desert cactus */
+/* saguaro cactus — canvas drawn */
 function buildCactus(){
-  const P={g:'#2c8a3a',G:'#1c5e26',d:'#0c3812',k:'#000',y:'#fef'};
-  const rows=[
-    ".......g....g.......",
-    ".......gG...gG......",
-    ".......ggG.ggG......",
-    "..gg...gGGGgGG......",
-    "..gG...gdGGgdG......",
-    "..gG...gGdGgGG......",
-    "..gG.gggGGGgGGgg....",
-    "..gGGgGGGGGGGGGGgg..",
-    "..gGdGGdGGdGGdGGGgg.",
-    "..gGGGGGGGGGGGGGGGg.",
-    "..gGGGGdGGdGGdGGGGg.",
-    "..gGGGGGGGGGGGGGGGg.",
-    "...gGGGGGdGGdGGGGg..",
-    "....gGGGGGGGGGGGg...",
-    ".....gGGGGGGGGGg....",
-    "......gGGGGGGGg.....",
-    ".......gGGGGGg......",
-    ".......gGdGGg.......",
-    ".......gGGGGg.......",
-    "........gGGg........",
-    "........kggk........",
-    "........kggk........",
-    "........kggk........"
-  ];
-  return {img:pixels(rows,P,2), w:40, h:46};
+  const w=70, h=140;
+  const cv=makeCanvas(w,h);
+  const cx=ctxOf(cv);
+  cx.fillStyle = '#1c5e26';
+  // main trunk (rounded top)
+  cx.beginPath();
+  cx.moveTo(w/2-8, h);
+  cx.lineTo(w/2-8, h*0.15);
+  cx.quadraticCurveTo(w/2-8, h*0.04, w/2, h*0.04);
+  cx.quadraticCurveTo(w/2+8, h*0.04, w/2+8, h*0.15);
+  cx.lineTo(w/2+8, h);
+  cx.closePath();
+  cx.fill();
+  // left arm
+  cx.beginPath();
+  cx.moveTo(w/2-8, h*0.55);
+  cx.quadraticCurveTo(w/2-25, h*0.55, w/2-25, h*0.42);
+  cx.lineTo(w/2-25, h*0.28);
+  cx.quadraticCurveTo(w/2-25, h*0.18, w/2-17, h*0.18);
+  cx.quadraticCurveTo(w/2-17, h*0.28, w/2-17, h*0.42);
+  cx.quadraticCurveTo(w/2-17, h*0.50, w/2-8, h*0.50);
+  cx.closePath();
+  cx.fill();
+  // right arm (higher)
+  cx.beginPath();
+  cx.moveTo(w/2+8, h*0.40);
+  cx.quadraticCurveTo(w/2+25, h*0.40, w/2+25, h*0.26);
+  cx.lineTo(w/2+25, h*0.14);
+  cx.quadraticCurveTo(w/2+25, h*0.05, w/2+17, h*0.05);
+  cx.quadraticCurveTo(w/2+17, h*0.14, w/2+17, h*0.26);
+  cx.quadraticCurveTo(w/2+17, h*0.34, w/2+8, h*0.34);
+  cx.closePath();
+  cx.fill();
+  // shadow side
+  cx.fillStyle = '#0e3818';
+  cx.fillRect(w/2+4, h*0.15, 4, h*0.85);
+  cx.fillRect(w/2+21, h*0.06, 4, h*0.30);
+  cx.fillRect(w/2-12, h*0.20, 4, h*0.32);
+  // ribs
+  cx.strokeStyle = '#0e3818';
+  cx.lineWidth = 1;
+  for(let i=-2;i<=2;i++){
+    cx.beginPath();
+    cx.moveTo(w/2+i*3, h*0.10);
+    cx.lineTo(w/2+i*3, h);
+    cx.stroke();
+  }
+  // spines
+  cx.fillStyle = '#fff8a0';
+  for(let s=0;s<60;s++){
+    const sx = w/2 + (Math.random()-0.5)*16;
+    const sy = h*0.08 + Math.random()*h*0.88;
+    cx.fillRect(sx, sy, 1, 1);
+  }
+  // crown flowers
+  cx.fillStyle = '#ffeebb';
+  cx.beginPath(); cx.arc(w/2, h*0.04, 2.2, 0, TAU); cx.fill();
+  cx.fillStyle = '#ffd070';
+  cx.beginPath(); cx.arc(w/2, h*0.04, 1.2, 0, TAU); cx.fill();
+  return {img:cv, w, h};
 }
 
-/* mountain pine tree */
+/* mountain pine — tall layered conifer, canvas drawn */
 function buildPine(){
-  const P={g:'#226933',G:'#103e1c',d:'#072108',n:'#5a341a',k:'#000',w:'#fff'};
-  const rows=[
-    "..............ww..............",
-    "............wgggGw............",
-    "...........gggGGGGd...........",
-    "..........gggdGGGGGd..........",
-    "........ggGGGdkkdGGGGd........",
-    "........gGGdGGddGGdGGd........",
-    ".......ggGGGGGdGGGGGGGd.......",
-    "......ggGGGdGGGGGGdGGGGd......",
-    ".....ggGGGGGGGdGdGGGGGGGd.....",
-    "....ggGGGdGGGGGGGGGGGdGGGd....",
-    "....ggGGGGGGGGGdGGGGGGGGGd....",
-    "...gggGGGGdGGGGGGGGdGGGGGGd...",
-    "..ggGGGGGGGGGGGdGGGGGGGGGGGd..",
-    ".gggGGGGdGGGGGGGGGGGdGGGGGGGd.",
-    "ggggGGGGGGGGdGGGGGGGGGGGdGGGGd",
-    "..............nn..............",
-    "..............nn..............",
-    "..............nn..............",
-    "..............nn..............",
-    "..............nn..............",
-    "..............nn..............",
-    "..............nn.............."
-  ];
-  return {img:pixels(rows,P,2), w:60, h:44};
+  const w=80, h=210;
+  const cv=makeCanvas(w,h);
+  const cx=ctxOf(cv);
+  const cxX = w/2;
+  const trunkH = 32;
+  cx.fillStyle = '#2a1808';
+  cx.fillRect(cxX-5, h-trunkH, 10, trunkH);
+  cx.fillStyle = '#4a2a14';
+  cx.fillRect(cxX-5, h-trunkH, 6, trunkH);
+  cx.fillStyle = '#1a0e04';
+  for(let y=h-trunkH; y<h; y+=4){
+    cx.fillRect(cxX-5, y, 10, 1);
+  }
+  const layers = 10;
+  const topY = 4;
+  const baseY = h - trunkH - 2;
+  const totalH = baseY - topY;
+  for(let i=layers-1; i>=0; i--){
+    const t = i/(layers-1);
+    const yTop = topY + t * totalH * 0.85;
+    const yBot = yTop + totalH * 0.20;
+    const halfW = 5 + t * (w/2 - 6);
+    cx.fillStyle = '#04200c';
+    cx.beginPath();
+    cx.moveTo(cxX, yTop+1);
+    cx.lineTo(cxX + halfW + 1, yBot+1);
+    cx.lineTo(cxX - halfW - 1, yBot+1);
+    cx.closePath();
+    cx.fill();
+    cx.fillStyle = i%2 ? '#1a5826' : '#216833';
+    cx.beginPath();
+    cx.moveTo(cxX, yTop);
+    cx.lineTo(cxX + halfW, yBot);
+    cx.lineTo(cxX - halfW, yBot);
+    cx.closePath();
+    cx.fill();
+    cx.fillStyle = '#2d8c45';
+    cx.beginPath();
+    cx.moveTo(cxX - 1, yTop+1);
+    cx.lineTo(cxX - halfW * 0.5, yBot - 2);
+    cx.lineTo(cxX - halfW * 0.85, yBot - 2);
+    cx.closePath();
+    cx.fill();
+    cx.fillStyle = '#04200c';
+    for(let d=0;d<12;d++){
+      const dx = (Math.random()-0.5) * halfW * 2;
+      const dy = yTop + Math.random() * (yBot - yTop);
+      cx.fillRect(Math.round(cxX+dx), Math.round(dy), 1, 1);
+    }
+  }
+  return {img:cv, w, h};
 }
 
 /* roadside boulder */
 function buildRock(){
-  const P={k:'#000',d:'#3a2f24',m:'#7a6450',l:'#a8927a',h:'#d6c0a4'};
-  const rows=[
-    ".....mmmm....",
-    "....mmllmm...",
-    "...mmllhlm...",
-    "..mlllhhllm..",
-    ".mlllhhhlllm.",
-    "mllllllllllllm",
-    "mlldddddddllm",
-    "mldddmmmddllm",
-    "mlddmmkmmdlm.",
-    ".mddmkkkmdlm.",
-    "..mdmmmmmdm..",
-    "...mddddmm...",
-    "....mmmm....."
-  ];
-  return {img:pixels(rows,P,2), w:26, h:26};
+  const w=60, h=46;
+  const cv=makeCanvas(w,h);
+  const cx=ctxOf(cv);
+  cx.fillStyle = 'rgba(0,0,0,0.35)';
+  cx.beginPath(); cx.ellipse(w/2+2, h*0.92, w*0.40, h*0.06, 0, 0, TAU); cx.fill();
+  cx.fillStyle = '#5a4636';
+  cx.beginPath(); cx.ellipse(w/2, h*0.66, w*0.42, h*0.34, 0, 0, TAU); cx.fill();
+  cx.fillStyle = '#7a6450';
+  cx.beginPath(); cx.ellipse(w/2-2, h*0.58, w*0.36, h*0.30, 0, 0, TAU); cx.fill();
+  cx.fillStyle = '#a8927a';
+  cx.beginPath(); cx.ellipse(w/2-5, h*0.46, w*0.26, h*0.22, 0, 0, TAU); cx.fill();
+  cx.fillStyle = '#d6c0a4';
+  cx.beginPath(); cx.ellipse(w/2-8, h*0.38, w*0.14, h*0.10, 0, 0, TAU); cx.fill();
+  cx.strokeStyle = '#3a2f24';
+  cx.lineWidth = 1;
+  cx.beginPath();
+  cx.moveTo(w*0.30, h*0.55); cx.lineTo(w*0.55, h*0.66); cx.lineTo(w*0.68, h*0.80);
+  cx.stroke();
+  cx.beginPath();
+  cx.moveTo(w*0.50, h*0.40); cx.lineTo(w*0.62, h*0.55);
+  cx.stroke();
+  return {img:cv, w, h};
+}
+
+/* bush — small rounded foliage clump */
+function buildBush(){
+  const w=70, h=46;
+  const cv=makeCanvas(w,h);
+  const cx=ctxOf(cv);
+  cx.fillStyle='rgba(0,0,0,0.30)';
+  cx.beginPath(); cx.ellipse(w/2, h-3, w*0.42, 3, 0, 0, TAU); cx.fill();
+  cx.fillStyle='#0d3a18';
+  for(let i=0;i<10;i++){
+    const x = w*0.16 + Math.random()*w*0.68;
+    const y = h*0.45 + Math.random()*h*0.42;
+    cx.beginPath(); cx.arc(x, y, 7+Math.random()*4, 0, TAU); cx.fill();
+  }
+  cx.fillStyle='#1a5826';
+  for(let i=0;i<10;i++){
+    const x = w*0.18 + Math.random()*w*0.64;
+    const y = h*0.38 + Math.random()*h*0.40;
+    cx.beginPath(); cx.arc(x, y, 6+Math.random()*4, 0, TAU); cx.fill();
+  }
+  cx.fillStyle='#226933';
+  for(let i=0;i<8;i++){
+    const x = w*0.20 + Math.random()*w*0.60;
+    const y = h*0.32 + Math.random()*h*0.34;
+    cx.beginPath(); cx.arc(x, y, 4+Math.random()*3, 0, TAU); cx.fill();
+  }
+  cx.fillStyle='#2d8443';
+  for(let i=0;i<5;i++){
+    const x = w*0.25 + Math.random()*w*0.50;
+    const y = h*0.28 + Math.random()*h*0.30;
+    cx.beginPath(); cx.arc(x, y, 3+Math.random()*2, 0, TAU); cx.fill();
+  }
+  return {img:cv, w, h};
 }
 
 /* city building (rear/side as scenery) */
@@ -520,6 +648,7 @@ SPR.palm      = buildPalmTree();
 SPR.pine      = buildPine();
 SPR.cactus    = buildCactus();
 SPR.rock      = buildRock();
+SPR.bush      = buildBush();
 SPR.sign      = buildSign();
 SPR.lamp      = buildLamp();
 SPR.skyline   = [];
@@ -809,11 +938,14 @@ function populateScenery(stage){
     const dist = side*(2 + Math.random()*4);
     let s;
     if(stage.theme==='beach'){
-      s = Math.random()<0.85 ? SPR.palm : SPR.sign;
+      const r = Math.random();
+      s = r<0.7 ? SPR.palm : (r<0.9 ? SPR.bush : SPR.sign);
     } else if(stage.theme==='desert'){
-      s = Math.random()<0.65 ? SPR.cactus : SPR.rock;
+      const r = Math.random();
+      s = r<0.55 ? SPR.cactus : (r<0.85 ? SPR.rock : SPR.bush);
     } else if(stage.theme==='mountain'){
-      s = Math.random()<0.8 ? SPR.pine : SPR.rock;
+      const r = Math.random();
+      s = r<0.7 ? SPR.pine : (r<0.88 ? SPR.bush : SPR.rock);
     } else if(stage.theme==='city'){
       if(Math.random()<0.3) s = SPR.lamp;
       else s = pick(SPR.skyline);
@@ -1181,8 +1313,22 @@ function drawSky(stage){
   }
 }
 
+function horizonShift(){
+  // combines steering (player.x) with upcoming road curvature so the
+  // horizon (sun + mountains) swings naturally as the player turns.
+  if(SEGMENTS.length === 0) return 0;
+  const baseSeg = findSegment(player.z);
+  let acc = 0;
+  for(let n=0;n<80;n++){
+    acc += SEGMENTS[(baseSeg.index+n) % SEGMENTS.length].curve;
+  }
+  return player.x*30 + acc*0.45;
+}
+
 function drawSun(stage){
-  const cx = W*0.5, cy = H*0.42;
+  const shift = horizonShift();
+  // sun is "further away" than mountains, so it parallaxes at ~50%
+  const cx = W*0.5 - shift*0.5, cy = H*0.42;
   const r = 70;
   const g = X.createRadialGradient(cx,cy,5,cx,cy,r*1.6);
   g.addColorStop(0, '#fff');
@@ -1190,10 +1336,8 @@ function drawSun(stage){
   g.addColorStop(1, 'rgba(0,0,0,0)');
   X.fillStyle = g;
   X.beginPath(); X.arc(cx,cy,r*1.6,0,TAU); X.fill();
-  // disc
   X.fillStyle = stage.sun;
   X.beginPath(); X.arc(cx,cy,r,0,TAU); X.fill();
-  // synthwave bands across the sun
   X.fillStyle = stage.sky[0];
   for(let i=0;i<5;i++){
     const y = cy + (i+1)*(r*0.18);
@@ -1203,9 +1347,9 @@ function drawSun(stage){
 
 function drawMountains(stage){
   const horizonY = H*0.6;
-  // distant range
+  const shift = horizonShift();
   X.save();
-  X.translate(-((player.x*30)%W), 0);
+  X.translate(-(shift%W), 0);
   for(let pass=0;pass<2;pass++){
     const off = pass*W;
     X.fillStyle = pass===0
@@ -1314,8 +1458,8 @@ function drawSpriteInWorld(spriteObj, seg, offset, overhead){
   if(destScale <= 0) return;
   const screenX = seg.p1.screen.x + (destScale * offset * ROAD_W * W/2);
   let screenY = seg.p1.screen.y;
-  const destW = sprite.w * destScale * W/2 * 4.5;
-  const destH = sprite.h * destScale * W/2 * 4.5;
+  const destW = sprite.w * destScale * W/2 * 17.5;
+  const destH = sprite.h * destScale * W/2 * 17.5;
   if(overhead) screenY -= destH*1.5;
   if(screenY-destH > H || screenY < 0) return;
   drawClippedSprite(sprite, screenX-destW/2, screenY-destH, destW, destH, seg.clip != null ? seg.clip : H);
