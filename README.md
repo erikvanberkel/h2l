@@ -2,6 +2,8 @@
 
 > One file. No build. No dependencies. Double-click and play.
 
+**▶ Play them live: [erikvanberkel.github.io/h2l](https://erikvanberkel.github.io/h2l/)**
+
 **H2L** is a collection of complete, self-contained applications that live inside a
 single `.html` file each. No `npm install`. No bundler. No CDN. No service worker.
 No backend. You open the file in any browser — on a laptop, a phone, a museum kiosk,
@@ -64,13 +66,13 @@ If a file breaks any of these, it gets fixed or it leaves.
 
 Right now H2L is a small arcade. Each title is a complete game in one file.
 
-| File                  | Title                              | What it is                                                                 |
-| --------------------- | ---------------------------------- | -------------------------------------------------------------------------- |
-| `fa18.html`           | **HORNET STRIKE**                  | Pseudo-3D flight combat with 9 missions, including a realistic runway takeoff. |
-| `outrun.html`         | **SUNSET DRIVE**                   | An Outrun-style arcade racer with on-screen touch controls for mobile.     |
-| `galaga.html`         | **GALAGA**                         | A faithful clone of the classic fixed-shooter, dives and all.              |
-| `spaceinvaders.html`  | **SPACE INVADERS**                 | The original marching-aliens shooter, rebuilt from scratch.                |
-| `t5.html`             | **T5**                             | A falling-block puzzle with modern guideline rules (hold, ghost, kicks).   |
+| Play                                                                        | Title              | What it is                                                                 |
+| --------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------- |
+| [**HORNET STRIKE**](https://erikvanberkel.github.io/h2l/fa18.html)          | `fa18.html`        | Pseudo-3D flight combat with 9 missions, including a realistic runway takeoff. |
+| [**SUNSET DRIVE**](https://erikvanberkel.github.io/h2l/outrun.html)         | `outrun.html`      | An Outrun-style arcade racer with on-screen touch controls for mobile.     |
+| [**GALAGA**](https://erikvanberkel.github.io/h2l/galaga.html)               | `galaga.html`      | A faithful clone of the classic fixed-shooter, dives and all.              |
+| [**SPACE INVADERS**](https://erikvanberkel.github.io/h2l/spaceinvaders.html)| `spaceinvaders.html` | The original marching-aliens shooter, rebuilt from scratch.              |
+| [**T5**](https://erikvanberkel.github.io/h2l/t5.html)                       | `t5.html`          | A falling-block puzzle with modern guideline rules (hold, ghost, kicks).   |
 
 All five are pure Canvas/JS, render their own art and sound, and clock in between
 ~28 KB and ~80 KB — the complete game, in a file smaller than most images.
@@ -81,6 +83,8 @@ All five are pure Canvas/JS, render their own art and sound, and clock in betwee
 
 There is no setup. Pick whichever you like:
 
+- **Online**, instantly — open [erikvanberkel.github.io/h2l](https://erikvanberkel.github.io/h2l/)
+  (e.g. [outrun](https://erikvanberkel.github.io/h2l/outrun.html)) and play in the browser.
 - **Double-click** the `.html` file. It opens in your default browser and runs.
 - **Drag** the file onto an open browser window.
 - Or serve the folder statically and visit the file:
