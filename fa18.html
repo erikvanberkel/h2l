@@ -378,7 +378,7 @@ function makeRunway(x,z,rot){
   g.rotation.y = rot;
   return g;
 }
-const homeBase = makeRunway(-10000, -1500, 0.2);
+const homeBase = makeRunway(-10000, -1500, 0);
 world.add(homeBase);
 
 // Cities (boxy buildings) on land
@@ -592,8 +592,8 @@ class Aircraft {
     if(!this.alive){ return; }
     inputs = inputs || {};
     // throttle
-    if(inputs.throttleUp) this.throttle = clamp(this.throttle+dt*0.45, 0, 1.1);
-    if(inputs.throttleDn) this.throttle = clamp(this.throttle-dt*0.45, 0, 1.1);
+    if(inputs.throttleUp) this.throttle = clamp(this.throttle+dt*1.1, 0, 1.1);
+    if(inputs.throttleDn) this.throttle = clamp(this.throttle-dt*1.1, 0, 1.1);
     // axis inputs
     const pitchIn = (inputs.pitch||0);
     const rollIn  = (inputs.roll||0);
@@ -1439,11 +1439,14 @@ const MISSIONS = [
       'Objectives: climb to 5000 ft, achieve 400 kts, then return to base.'
     ],
     setup(){
-      resetPlayer({pos:new THREE.Vector3(-10000, 80, 0), heading:Math.PI*1.0, speed:160, gear:true});
+      // Park at the +Z end of the runway, nose pointed down the strip (-Z).
+      const startPos = homeBase.position.clone().add(new THREE.Vector3(0, 1, 800));
+      resetPlayer({pos:startPos, heading:0, speed:0, gear:true, throttle:0});
       this.objectives = [
-        {text:'Climb above 5,000 ft', done:false, check:()=>player.feet()>5000},
-        {text:'Reach 400 KIAS',       done:false, check:()=>player.kts()>400},
-        {text:'Return within 6 km of base', done:false, check:()=>player.pos.distanceTo(homeBase.position)<6000 && this.objectives[0].done && this.objectives[1].done},
+        {text:'Take off — 200 KIAS, gear up', done:false, check:()=>player.kts()>200 && player.feet()>200 && !player.gear},
+        {text:'Climb above 5,000 ft', done:false, check:()=>player.feet()>5000 && this.objectives[0].done},
+        {text:'Reach 400 KIAS',       done:false, check:()=>player.kts()>400 && this.objectives[1].done},
+        {text:'Return within 6 km of base', done:false, check:()=>player.pos.distanceTo(homeBase.position)<6000 && this.objectives[2].done},
       ];
       this.timeLimit = 0;
     }
@@ -1795,6 +1798,13 @@ function startMission(m){
   }
   state = STATE.PLAY;
   missionTime = 0;
+  // Snap camera into chase position immediately so the first frame isn't a stale view.
+  camMode = CAM_CHASE;
+  const fwd = player.forward(new THREE.Vector3());
+  const up = player.up(new THREE.Vector3());
+  camera.position.copy(player.pos).addScaledVector(fwd, -22).addScaledVector(up, 6);
+  camera.up.copy(up);
+  camera.lookAt(player.pos.clone().addScaledVector(fwd, 80));
   toast(m.name + ' — GO', '', 2.0);
   blip(880,0.08,'square',0.18); setTimeout(()=>blip(1320,0.12,'square',0.18), 110);
 }
@@ -1964,6 +1974,9 @@ function updateGame(dt){
 
   // check kills
   checkKillRegistration();
+
+  // camera follows the player after all positions are updated
+  updateCamera(dt);
 
   // mission objectives
   if(currentMission){
