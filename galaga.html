@@ -306,31 +306,32 @@ const Sound=(function(){
      Bright C-major fanfare, lead + walking root/fifth bass + light percussion,
      scheduled on the WebAudio clock with a lookahead window for tight timing. */
   const NOTE={
-    'F2':87.31,'G2':98.00,'A2':110.00,
+    'E2':82.41,'F2':87.31,'G2':98.00,'A2':110.00,
     'C3':130.81,'D3':146.83,'E3':164.81,'G3':196.00,
     'C4':261.63,'D4':293.66,'E4':329.63,'F4':349.23,'G4':392.00,'A4':440.00,'B4':493.88,
-    'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99
+    'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99,
+    'A5':880.00,'B5':987.77,'C6':1046.50
   };
   // 16 sixteenth-note steps per bar.  '-' sustains the previous note, '.' rests.
   const LEAD=(
-    'C5 - E5 - G5 - - - E5 - C5 - G4 - - - '+   // C
-    'A4 - C5 - E5 - - - C5 - A4 - E4 - - - '+   // Am
-    'F4 - A4 - C5 - - - A4 - F4 - C4 - D4 - '+  // F
-    'G4 - B4 - D5 - - - G5 - - - G4 - - - '+    // G
-    'C5 - E5 - G5 - - - E5 - C5 - G4 - - - '+   // C
-    'A4 - C5 - E5 - - - C5 - A4 - E4 - - - '+   // Am
-    'F4 - A4 - C5 - - - D5 - E5 - F5 - - - '+   // F
-    'G5 - - - G4 - - - C5 - - - - - - - '       // G -> C resolve
+    'C5 - E5 - G5 - C6 - G5 - E5 - C5 - G4 - '+  // C
+    'A4 - C5 - E5 - A5 - E5 - C5 - A4 - E4 - '+  // Am
+    'F4 - A4 - C5 - F5 - C5 - A4 - F4 - C4 - '+  // F
+    'G4 - B4 - D5 - G5 - B5 - G5 - D5 - B4 - '+  // G
+    'C5 - E5 - G5 - C6 - B5 - G5 - E5 - C5 - '+  // C
+    'A4 - C5 - E5 - A5 - G5 - E5 - C5 - A4 - '+  // Am
+    'F4 - A4 - C5 - D5 - E5 - F5 - G5 - A5 - '+  // F (ascending run)
+    'G5 - D5 - B4 - G4 - C5 - - - - - - - '      // G -> C resolve
   );
   const BASS=(
-    'C3 - - - G3 - - - C3 - - - G3 - - - '+
-    'A2 - - - E3 - - - A2 - - - E3 - - - '+
-    'F2 - - - C3 - - - F2 - - - C3 - - - '+
-    'G2 - - - D3 - - - G2 - - - D3 - - - '+
-    'C3 - - - G3 - - - C3 - - - G3 - - - '+
-    'A2 - - - E3 - - - A2 - - - E3 - - - '+
-    'F2 - - - C3 - - - F2 - - - C3 - - - '+
-    'G2 - - - D3 - - - G2 - - - C3 - - - '
+    'C3 - G2 - C3 - G3 - C3 - G2 - C3 - G3 - '+
+    'A2 - E2 - A2 - E3 - A2 - E2 - A2 - E3 - '+
+    'F2 - C3 - F2 - C3 - F2 - C3 - F2 - C3 - '+
+    'G2 - D3 - G2 - D3 - G2 - D3 - G2 - D3 - '+
+    'C3 - G2 - C3 - G3 - C3 - G2 - C3 - G3 - '+
+    'A2 - E2 - A2 - E3 - A2 - E2 - A2 - E3 - '+
+    'F2 - C3 - F2 - C3 - F2 - C3 - F2 - C3 - '+
+    'G2 - D3 - G2 - D3 - G2 - D3 - C3 - C3 - '
   );
   function parseSeq(str){
     const t=str.trim().split(/\s+/), out=new Array(t.length).fill(null);
@@ -378,6 +379,16 @@ const Sound=(function(){
       mTime+=SECPERSTEP; mStep=(mStep+1)%TOTAL;
     }
   }
+  // Briefly dip the looping music so a jingle/stinger plays clearly over it.
+  function duckMusic(dur,hold){
+    if(!musicGain) return;
+    const t=ac.currentTime;
+    musicGain.gain.cancelScheduledValues(t);
+    musicGain.gain.setValueAtTime(musicGain.gain.value,t);
+    musicGain.gain.linearRampToValueAtTime(0.0001,t+0.06);
+    musicGain.gain.setValueAtTime(0.0001,t+dur);
+    musicGain.gain.linearRampToValueAtTime(0.55,t+dur+(hold||0.45));
+  }
   return {
     init(){ensure();}, resume,
     music(play){
@@ -390,13 +401,37 @@ const Sound=(function(){
     hit(){ noise(0.12,0.22,2400,300); tone(220,0.1,'sawtooth',0.12,90); },
     explode(big){ noise(big?0.5:0.3, big?0.4:0.3, big?1400:1800, 60); tone(big?120:160,big?0.5:0.3,'sawtooth',0.18,40); },
     dive(){ tone(300,0.25,'square',0.08,900); },
-    beam(){ // descending capture sound
+    beam(){ // tractor-beam deploy: descending whir
       for(let i=0;i<10;i++) tone(900-i*60,0.09,'triangle',0.14,null,i*0.06);
     },
-    capture(){ for(let i=0;i<6;i++) tone(200+i*40,0.12,'sawtooth',0.16,null,i*0.07); },
+    // Tense "your fighter is being captured" cue: a low drone under a slow,
+    // ominous minor climb that bends upward as the ship is dragged in.
+    captureTheme(){
+      ensure(); if(!ac) return;
+      duckMusic(1.9,0.5);
+      tone(110.00,1.7,'sawtooth',0.12,103.83);  // low drone, sagging
+      tone(164.81,1.7,'triangle',0.07);         // ominous fifth
+      const mel=[220.00,246.94,277.18,329.63,349.23,392.00,415.30,440.00];
+      mel.forEach((f,i)=>tone(f,0.20,'square',0.17,f*1.03,0.18+i*0.18));
+      tone(440.00,0.5,'square',0.18,560,1.62);  // final upward bend (pulled in)
+    },
+    capture(){ // capture complete: short dark resolution
+      duckMusic(0.9,0.4);
+      const n=[330,277,220,165]; n.forEach((f,i)=>tone(f,0.22,'sawtooth',0.18,f*0.94,i*0.13));
+      tone(110,0.6,'triangle',0.12,98,0.1);
+    },
     rescue(){ const n=[523,659,784,1047]; n.forEach((f,i)=>tone(f,0.16,'square',0.22,null,i*0.12)); },
     extra(){ const n=[784,988,1175]; n.forEach((f,i)=>tone(f,0.14,'square',0.2,null,i*0.08)); },
-    stageStart(){ const n=[392,523,659,523,659,784]; n.forEach((f,i)=>tone(f,0.18,'square',0.18,null,i*0.13)); },
+    // Bright, bouncy Galaga-style stage-start fanfare (ducks the loop briefly).
+    stageStart(){
+      ensure(); if(!ac) return;
+      duckMusic(1.25,0.4);
+      const n=[
+        [523.25,0.00],[783.99,0.10],[1046.50,0.20],[783.99,0.32],
+        [659.25,0.42],[523.25,0.52],[659.25,0.66],[783.99,0.78],[1046.50,0.92]
+      ];
+      n.forEach(([f,t])=>tone(f,0.16,'square',0.20,null,t));
+    },
     perfect(){ const n=[523,659,784,1047,1319]; n.forEach((f,i)=>tone(f,0.2,'square',0.24,null,i*0.11)); },
     coin(){ tone(988,0.08,'square',0.2); tone(1319,0.12,'square',0.2,null,0.08); },
   };
@@ -546,7 +581,7 @@ function beginStage(){
   challenge=isChallenge(stage);
   if(challenge) setupChallenge(); else setupEntrance();
   state=ST.READY; stateT=0;
-  if(stage===1) Sound.stageStart();
+  if(!challenge) Sound.stageStart();
 }
 function nextStage(){ stage++; beginStage(); }
 
@@ -857,7 +892,7 @@ function startDive(e){
 function updatePlayer(dt){
   player.fireCd=Math.max(0,player.fireCd-dt);
   player.invuln=Math.max(0,player.invuln-dt);
-  if(player.respawnT>0){ player.respawnT-=dt; if(player.respawnT<=0){ player.alive=true; player.visible=true; player.invuln=1.2; player.x=W/2; } return; }
+  if(player.respawnT>0){ player.respawnT-=dt; if(player.respawnT<=0){ player.alive=true; player.visible=true; player.invuln=1.2; player.x=W/2; player.y=H-24; } return; }
 
   if(player.captured){ // being pulled into the beam
     const b=captureBoss;
@@ -941,7 +976,7 @@ function updateBeams(dt){
       const f=(player.y-b.y)/(beamBottom-b.y);
       const half=lerp(halfTop,halfBot,clamp(f,0,1));
       if(player.y>b.y && Math.abs(player.x-b.x)<half){
-        player.captured=true; captureBoss=b;
+        player.captured=true; captureBoss=b; Sound.captureTheme();
       }
     }
   }
